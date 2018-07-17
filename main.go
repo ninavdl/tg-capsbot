@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func isUpperCase(text string) bool {
+func ISUPPERCASE(text string) bool {
 	for _, r := range []rune(text) {
 		if (unicode.IsLetter(r) && !unicode.IsUpper(r)) {
 			return false
@@ -36,14 +36,14 @@ func main() {
 	}
 
 
-	bot.Handle(tb.OnText, textHandler)
-	bot.Handle(tb.OnEdited, textHandler)
+	bot.Handle(tb.OnText, TEXTHANDLER)
+	bot.Handle(tb.OnEdited, TEXTHANDLER)
 
 	bot.Start()
 }
 
-func textHandler(msg *tb.Message) {
-	if !msg.FromGroup() || isUpperCase(msg.Text) {
+func TEXTHANDLER(msg *tb.Message) {
+	if !msg.FromGroup() || ISUPPERCASE(msg.Text) {
 		return
 	}
 
@@ -62,9 +62,9 @@ func textHandler(msg *tb.Message) {
 	}
 
 	bot.Send(msg.Chat, strings.ToUpper(name) + " RAUS")
-	// banning and unbanning should be equivalent to kicking
+	// BANNING AND UNBANNING SHOULD BE EQUIVALENT TO KICKING
 	bot.Ban(msg.Chat, member)
 	bot.Unban(msg.Chat, msg.Sender)
 	
-	log.Printf("%s violated the no-lower-case rule and was punished", name)
+	log.Printf("%s VIOLATED THE NO-LOWER-CASE RULE AND WAS PUNISHED", name)
 }
