@@ -1,0 +1,70 @@
+package main
+
+import (
+	TB "gopkg.in/tucnak/telebot.v2" 
+	OS "os"
+	UNICODE "unicode"
+	STRINGS "strings"
+	FMT "fmt"
+	LOG "log"
+	TIME "time"
+)
+
+func ISUPPERCASE(TEXT string) bool {
+	for _, R := range []rune(TEXT) {
+		if (UNICODE.IsLetter(R) && !UNICODE.IsUpper(R)) {
+			return false
+		}
+	}
+	return true
+}
+
+var BOT *TB.Bot
+
+func main() {
+	TOKEN := OS.Getenv("CAPSBOT_TOKEN")
+
+	var ERR error
+	BOT, ERR = TB.NewBot(TB.Settings{
+		Token: TOKEN,
+		Poller: &TB.LongPoller{Timeout: 10 * TIME.Second},
+	})
+
+	if ERR != nil {
+		FMT.Println(ERR)
+		return
+	}
+
+
+	BOT.Handle(TB.OnText, TEXTHANDLER)
+	BOT.Handle(TB.OnEdited, TEXTHANDLER)
+
+	BOT.Start()
+}
+
+func TEXTHANDLER(MSG *TB.Message) {
+	if !MSG.FromGroup() || ISUPPERCASE(MSG.Text) {
+		return
+	}
+
+	MEMBER, ERR := BOT.ChatMemberOf(MSG.Chat, MSG.Sender)
+	if ERR != nil {
+		LOG.Println(ERR)
+		return
+	}
+
+	BOT.Delete(MSG)
+	var NAME string
+	if MSG.Sender.Username != "" {
+		NAME = "@" + MSG.Sender.Username
+	} else {
+		NAME = MSG.Sender.FirstName + " " + MSG.Sender.LastName
+	}
+
+	BOT.Send(MSG.Chat,STRINGS.ToUpper(NAME) + " RAUS")
+	// BANNING AND UNBANNING SHOULD BE EQUIVALENT TO KICKING
+	BOT.Ban(MSG.Chat, MEMBER)
+	BOT.Unban(MSG.Chat, MSG.Sender)
+	
+	LOG.Printf("%s VIOLATED THE NO-LOWER-CASE RULE AND WAS PUNISHED", NAME)
+}
