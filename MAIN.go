@@ -1,24 +1,42 @@
 package main
 
 import (
-	TB "gopkg.in/tucnak/telebot.v2" 
-	OS "os"
-	UNICODE "unicode"
-	STRINGS "strings"
 	FMT "fmt"
 	LOG "log"
+	OS "os"
+	STRINGS "strings"
 	TIME "time"
+	UNICODE "unicode"
+
+	TB "gopkg.in/tucnak/telebot.v2"
 )
 
-func ISUPPERCASE(TEXT string) bool {
-	for _, R := range []rune(TEXT) {
-		if (UNICODE.IsLetter(R) && !UNICODE.IsUpper(R)) {
-			return false
+// STRING IS A STRING
+type STRING = string
+
+// BOOL IS A BOOL
+type BOOL = bool
+
+// RUNE IS A RUNE
+type RUNE = rune
+
+// TRUE IS TRUE
+const TRUE = true
+
+// FALSE IS FALSE
+const FALSE = false
+
+// ISUPPERCASE CHECKS WHETHER THE STRING CONTAINS JUST UPPERCASE RUNES
+func ISUPPERCASE(TEXT STRING) BOOL {
+	for _, R := range []RUNE(TEXT) {
+		if UNICODE.IsLetter(R) && !UNICODE.IsUpper(R) {
+			return FALSE
 		}
 	}
-	return true
+	return TRUE
 }
 
+// BOT IS THE BOT
 var BOT *TB.Bot
 
 func main() {
@@ -26,7 +44,7 @@ func main() {
 
 	var ERR error
 	BOT, ERR = TB.NewBot(TB.Settings{
-		Token: TOKEN,
+		Token:  TOKEN,
 		Poller: &TB.LongPoller{Timeout: 10 * TIME.Second},
 	})
 
@@ -35,13 +53,13 @@ func main() {
 		return
 	}
 
-
 	BOT.Handle(TB.OnText, TEXTHANDLER)
 	BOT.Handle(TB.OnEdited, TEXTHANDLER)
 
 	BOT.Start()
 }
 
+// TEXTHANDLER HANDLES TELEGRAM TEXT MESSAGES
 func TEXTHANDLER(MSG *TB.Message) {
 	if !MSG.FromGroup() || ISUPPERCASE(MSG.Text) {
 		return
@@ -54,17 +72,17 @@ func TEXTHANDLER(MSG *TB.Message) {
 	}
 
 	BOT.Delete(MSG)
-	var NAME string
+	var NAME STRING
 	if MSG.Sender.Username != "" {
 		NAME = "@" + MSG.Sender.Username
 	} else {
 		NAME = MSG.Sender.FirstName + " " + MSG.Sender.LastName
 	}
 
-	BOT.Send(MSG.Chat,STRINGS.ToUpper(NAME) + " RAUS")
+	BOT.Send(MSG.Chat, STRINGS.ToUpper(NAME)+" RAUS")
 	// BANNING AND UNBANNING SHOULD BE EQUIVALENT TO KICKING
 	BOT.Ban(MSG.Chat, MEMBER)
 	BOT.Unban(MSG.Chat, MSG.Sender)
-	
+
 	LOG.Printf("%s VIOLATED THE NO-LOWER-CASE RULE AND WAS PUNISHED", NAME)
 }
