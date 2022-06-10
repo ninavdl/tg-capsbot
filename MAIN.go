@@ -88,9 +88,9 @@ func FILTER(FILTERFUNC func(*TB.Message) BOOL) func(*TB.Message) {
 		BOT.Delete(MSG)
 		var NAME STRING
 		if MSG.Sender.Username != "" {
-			NAME = "@" + MSG.Sender.Username
+			NAME = "@" + STRINGS.ToUpper(MSG.Sender.Username)
 		} else {
-			NAME = MSG.Sender.FirstName + " " + MSG.Sender.LastName
+			NAME = STRINGS.ToUpper(MSG.Sender.FirstName) + " " + STRINGS.ToUpper(MSG.Sender.LastName)
 		}
 
 		BOT.Send(MSG.Chat, STRINGS.ToUpper(NAME)+" RAUS")
