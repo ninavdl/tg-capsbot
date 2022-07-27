@@ -6,6 +6,7 @@
 *.dylib
 tg-capsbot
 PHOTOS/
+STICKERS/
 
 # Test binary, build with `go test -c`
 *.test

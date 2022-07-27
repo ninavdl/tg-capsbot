@@ -71,6 +71,7 @@ func main() {
 	TEXTHANDLER := FILTER(FILTERTEXT)
 	MEDIAHANDLER := FILTER(FILTERMEDIA)
 	DOCUMENTHANDLER := FILTER(FILTERDOCUMENT)
+	STICKERHANDLER := FILTER(FILTERSTICKER)
 
 	// FILTER TEXT MESSAGES TEXTS
 	BOT.Handle(TB.OnText, TEXTHANDLER)
@@ -80,6 +81,9 @@ func main() {
 	BOT.Handle(TB.OnPhoto, MEDIAHANDLER)
 	BOT.Handle(TB.OnAudio, MEDIAHANDLER)
 	BOT.Handle(TB.OnVideo, MEDIAHANDLER)
+
+	// FILTER STICKER TEXT
+	BOT.Handle(TB.OnSticker, STICKERHANDLER)
 
 	// FILTER DOCUMENT'S CAPTIONS AND FILE NAMES
 	BOT.Handle(TB.OnDocument, DOCUMENTHANDLER)
@@ -147,21 +151,7 @@ func FILTERMEDIA(MSG *TB.Message) BOOL {
 
 	URL := "https://api.telegram.org/bot" + BOT.Token + "/getFile?file_id=" + MSG.Photo.FileID
 
-	RESP, ERR := HTTP_CLIENT.Get(URL)
-	if ERR != nil {
-		LOG.Println(ERR)
-	}
-	defer RESP.Body.Close()
-
-	BODY, ERR := IOUTIL.ReadAll(RESP.Body)
-
-	if ERR != nil {
-		LOG.Println(ERR)
-	}
-
-	var J JSON_RESP
-
-	JSON.Unmarshal(BODY, &J)
+	J := GETJSON(URL)
 
 	PHOTO_URL := "https://api.telegram.org/file/bot" + BOT.Token + "/" + J.RESULT.FILE_PATH
 
@@ -171,7 +161,7 @@ func FILTERMEDIA(MSG *TB.Message) BOOL {
 		LOG.Println(ERR)
 	}
 
-	RESP, ERR = HTTP_CLIENT.Do(REQ)
+	RESP, ERR := HTTP_CLIENT.Do(REQ)
 	if ERR != nil {
 		LOG.Println(ERR)
 	}
@@ -202,4 +192,79 @@ func FILTERMEDIA(MSG *TB.Message) BOOL {
 	}
 
 	return !ISUPPERCASE(MSG.Caption) || !ISUPPERCASE(OCR_TEXT)
+}
+
+func FILTERSTICKER(MSG *TB.Message) BOOL {
+	// TESSERACT WITH ENG AND DEU PACKAGES AND LECTONICA PACKAGE NEED TO BE INSTALLED IN ORDER FOR OCR TO WORK PROPERLY
+	OCR_CLIENT := GOSSERACT.NewClient()
+	defer OCR_CLIENT.Close()
+
+	URL := "https://api.telegram.org/bot" + BOT.Token + "/getFile?file_id=" + MSG.Sticker.FileID
+
+	J := GETJSON(URL)
+
+	// MAKE SURE TO FILTER OUT ANIMATED STICKERS
+	if !STRINGS.HasSuffix(J.RESULT.FILE_PATH, ".webp") {
+		return FALSE
+	}
+
+	STICKER_URL := "https://api.telegram.org/file/bot" + BOT.Token + "/" + J.RESULT.FILE_PATH
+
+	REQ, ERR := HTTP.NewRequest("GET", STICKER_URL, nil)
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	RESP, ERR := HTTP_CLIENT.Do(REQ)
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	_ = OS.Mkdir("STICKERS/", 0700)
+
+	OUT, ERR := OS.Create(STRINGS.ToUpper(J.RESULT.FILE_PATH))
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	defer OUT.Close()
+
+	_, ERR = IO.Copy(OUT, RESP.Body)
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	OCR_CLIENT.SetImage("./" + STRINGS.ToUpper(J.RESULT.FILE_PATH))
+	OCR_TEXT, _ := OCR_CLIENT.Text()
+
+	ERR = OS.Remove(STRINGS.ToUpper(J.RESULT.FILE_PATH))
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	return !ISUPPERCASE(OCR_TEXT)
+}
+
+func GETJSON(URL STRING) JSON_RESP {
+	RESP, ERR := HTTP_CLIENT.Get(URL)
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+	defer RESP.Body.Close()
+
+	BODY, ERR := IOUTIL.ReadAll(RESP.Body)
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	var J JSON_RESP
+
+	JSON.Unmarshal(BODY, &J)
+
+	return J
 }
