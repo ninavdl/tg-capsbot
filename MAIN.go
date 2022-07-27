@@ -182,6 +182,7 @@ func FILTERMEDIA(MSG *TB.Message) BOOL {
 		LOG.Println(ERR)
 	}
 
+	OCR_CLIENT.SetPageSegMode(6)
 	OCR_CLIENT.SetImage("./" + STRINGS.ToUpper(J.RESULT.FILE_PATH))
 	OCR_TEXT, _ := OCR_CLIENT.Text()
 
@@ -189,6 +190,24 @@ func FILTERMEDIA(MSG *TB.Message) BOOL {
 
 	if ERR != nil {
 		LOG.Println(ERR)
+	}
+
+	_OUT, ERR := OCR_CLIENT.GetBoundingBoxes(GOSSERACT.RIL_SYMBOL)
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	sum := 0.0
+	for _, BOX := range _OUT {
+		sum += BOX.Confidence
+	}
+
+	AVG_CONF := sum / float64(len(_OUT))
+
+	if AVG_CONF < 95 {
+		LOG.Printf("IMAGE OF "+STRINGS.ToUpper(MSG.Sender.FirstName)+" PASSED BECAUSE OF TOO LOW CONFIDENCE OF %f.", AVG_CONF)
+		return FALSE
 	}
 
 	return !ISUPPERCASE(MSG.Caption) || !ISUPPERCASE(OCR_TEXT)
@@ -237,6 +256,7 @@ func FILTERSTICKER(MSG *TB.Message) BOOL {
 		LOG.Println(ERR)
 	}
 
+	OCR_CLIENT.SetPageSegMode(6)
 	OCR_CLIENT.SetImage("./" + STRINGS.ToUpper(J.RESULT.FILE_PATH))
 	OCR_TEXT, _ := OCR_CLIENT.Text()
 
@@ -244,6 +264,23 @@ func FILTERSTICKER(MSG *TB.Message) BOOL {
 
 	if ERR != nil {
 		LOG.Println(ERR)
+	}
+
+	_OUT, ERR := OCR_CLIENT.GetBoundingBoxes(GOSSERACT.RIL_SYMBOL)
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	sum := 0.0
+	for _, BOX := range _OUT {
+		sum += BOX.Confidence
+	}
+	AVG_CONF := sum / float64(len(_OUT))
+
+	if AVG_CONF < 95 {
+		LOG.Printf("STICKER OF "+STRINGS.ToUpper(MSG.Sender.FirstName)+" PASSED BECAUSE OF TOO LOW CONFIDENCE OF %f.", AVG_CONF)
+		return FALSE
 	}
 
 	return !ISUPPERCASE(OCR_TEXT)
