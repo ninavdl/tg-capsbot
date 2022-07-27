@@ -7,6 +7,7 @@
 tg-capsbot
 PHOTOS/
 STICKERS/
+DOCUMENTS/
 
 # Test binary, build with `go test -c`
 *.test

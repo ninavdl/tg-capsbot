@@ -12,6 +12,8 @@ import (
 	TIME "time"
 	UNICODE "unicode"
 
+	MIMETYPE "github.com/gabriel-vasile/mimetype"
+
 	GOSSERACT "github.com/otiai10/gosseract/v2"
 
 	TB "github.com/sour-dough/telebot/v2"
@@ -136,8 +138,60 @@ func FILTERTEXT(MSG *TB.Message) BOOL {
 func FILTERDOCUMENT(MSG *TB.Message) BOOL {
 	if MSG.Document != nil {
 		if !ISUPPERCASE(MSG.Document.FileName) {
-			return true
+			return TRUE
 		}
+		URL := "https://api.telegram.org/bot" + BOT.Token + "/getFile?file_id=" + MSG.Document.FileID
+
+		J := GETJSON(URL)
+
+		DOCUMENT_URL := "https://api.telegram.org/file/bot" + BOT.Token + "/" + J.RESULT.FILE_PATH
+
+		REQ, ERR := HTTP.NewRequest("GET", DOCUMENT_URL, nil)
+
+		if ERR != nil {
+			LOG.Println(ERR)
+		}
+
+		RESP, ERR := HTTP_CLIENT.Do(REQ)
+		if ERR != nil {
+			LOG.Println(ERR)
+		}
+
+		_ = OS.Mkdir("DOCUMENTS/", 0700)
+
+		OUT, ERR := OS.Create(STRINGS.ToUpper(J.RESULT.FILE_PATH))
+
+		if ERR != nil {
+			LOG.Println(ERR)
+		}
+
+		defer OUT.Close()
+
+		_, ERR = IO.Copy(OUT, RESP.Body)
+
+		if ERR != nil {
+			LOG.Println(ERR)
+		}
+
+		MIMETYPE.SetLimit(0)
+		MTYPE, ERR := MIMETYPE.DetectFile("./" + STRINGS.ToUpper(J.RESULT.FILE_PATH))
+
+		defer OS.Remove(STRINGS.ToUpper(J.RESULT.FILE_PATH))
+		if MTYPE.Is("text/plain") {
+			CONTENT, ERR := OS.ReadFile("./" + STRINGS.ToUpper(J.RESULT.FILE_PATH))
+
+			if ERR != nil {
+				LOG.Println(ERR)
+			}
+			return !ISUPPERCASE(STRING(CONTENT))
+
+		} else {
+			// FUTURE CONDITIONAL CODE GOES HERE
+			if MTYPE.Is("application/pdf") {
+
+			}
+		}
+
 	}
 	return !ISUPPERCASE(MSG.Caption)
 }
