@@ -5,6 +5,7 @@
 *.so
 *.dylib
 tg-capsbot
+PHOTOS/
 
 # Test binary, build with `go test -c`
 *.test

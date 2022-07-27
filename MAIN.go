@@ -1,12 +1,18 @@
 package main
 
 import (
+	JSON "encoding/json"
 	FMT "fmt"
+	IO "io"
+	IOUTIL "io/ioutil"
 	LOG "log"
+	HTTP "net/http"
 	OS "os"
 	STRINGS "strings"
 	TIME "time"
 	UNICODE "unicode"
+
+	GOSSERACT "github.com/otiai10/gosseract/v2"
 
 	TB "github.com/sour-dough/telebot/v2"
 )
@@ -15,6 +21,19 @@ import (
 type STRING = string
 type BOOL = bool
 type RUNE = rune
+type INT = int
+
+type RESULT struct {
+	FILE_ID        STRING
+	FILE_UNIQUE_ID STRING
+	FILE_SIZE      INT
+	FILE_PATH      STRING
+}
+
+type JSON_RESP struct {
+	OK     BOOL
+	RESULT RESULT
+}
 
 const TRUE = true
 const FALSE = false
@@ -31,6 +50,8 @@ func ISUPPERCASE(TEXT STRING) BOOL {
 
 // BOT IS THE BOT
 var BOT *TB.Bot
+
+var HTTP_CLIENT = &HTTP.Client{Timeout: 5 * TIME.Second}
 
 func main() {
 	TOKEN := OS.Getenv("CAPSBOT_TOKEN")
@@ -119,5 +140,66 @@ func FILTERDOCUMENT(MSG *TB.Message) BOOL {
 
 // FILTERMEDIA RETURNS TRUE IFF A GIVEN MEDIA MESSAGE'S CAPTION CONTAINS LOWER-CASE LETTERS
 func FILTERMEDIA(MSG *TB.Message) BOOL {
-	return !ISUPPERCASE(MSG.Caption)
+
+	// TESSERACT WITH ENG AND DEU PACKAGES AND LECTONICA PACKAGE NEED TO BE INSTALLED IN ORDER FOR OCR TO WORK PROPERLY
+	OCR_CLIENT := GOSSERACT.NewClient()
+	defer OCR_CLIENT.Close()
+
+	URL := "https://api.telegram.org/bot" + BOT.Token + "/getFile?file_id=" + MSG.Photo.FileID
+
+	RESP, ERR := HTTP_CLIENT.Get(URL)
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+	defer RESP.Body.Close()
+
+	BODY, ERR := IOUTIL.ReadAll(RESP.Body)
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	var J JSON_RESP
+
+	JSON.Unmarshal(BODY, &J)
+
+	PHOTO_URL := "https://api.telegram.org/file/bot" + BOT.Token + "/" + J.RESULT.FILE_PATH
+
+	REQ, ERR := HTTP.NewRequest("GET", PHOTO_URL, nil)
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	RESP, ERR = HTTP_CLIENT.Do(REQ)
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	_ = OS.Mkdir("PHOTOS/", 0700)
+
+	OUT, ERR := OS.Create(STRINGS.ToUpper(J.RESULT.FILE_PATH))
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	defer OUT.Close()
+
+	_, ERR = IO.Copy(OUT, RESP.Body)
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	OCR_CLIENT.SetImage("./" + STRINGS.ToUpper(J.RESULT.FILE_PATH))
+	OCR_TEXT, _ := OCR_CLIENT.Text()
+
+	ERR = OS.Remove(STRINGS.ToUpper(J.RESULT.FILE_PATH))
+
+	if ERR != nil {
+		LOG.Println(ERR)
+	}
+
+	return !ISUPPERCASE(MSG.Caption) || !ISUPPERCASE(OCR_TEXT)
 }
