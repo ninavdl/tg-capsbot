@@ -198,12 +198,12 @@ func FILTERMEDIA(MSG *TB.Message) BOOL {
 		LOG.Println(ERR)
 	}
 
-	sum := 0.0
+	SUM := 0.0
 	for _, BOX := range _OUT {
-		sum += BOX.Confidence
+		SUM += BOX.Confidence
 	}
 
-	AVG_CONF := sum / float64(len(_OUT))
+	AVG_CONF := SUM / float64(len(_OUT))
 
 	if AVG_CONF < 95 {
 		LOG.Printf("IMAGE OF "+STRINGS.ToUpper(MSG.Sender.FirstName)+" PASSED BECAUSE OF TOO LOW CONFIDENCE OF %f.", AVG_CONF)
@@ -272,11 +272,11 @@ func FILTERSTICKER(MSG *TB.Message) BOOL {
 		LOG.Println(ERR)
 	}
 
-	sum := 0.0
+	SUM := 0.0
 	for _, BOX := range _OUT {
-		sum += BOX.Confidence
+		SUM += BOX.Confidence
 	}
-	AVG_CONF := sum / float64(len(_OUT))
+	AVG_CONF := SUM / float64(len(_OUT))
 
 	if AVG_CONF < 95 {
 		LOG.Printf("STICKER OF "+STRINGS.ToUpper(MSG.Sender.FirstName)+" PASSED BECAUSE OF TOO LOW CONFIDENCE OF %f.", AVG_CONF)
