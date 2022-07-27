@@ -1,6 +1,7 @@
 package main
 
 import (
+	BYTES "bytes"
 	JSON "encoding/json"
 	FMT "fmt"
 	IO "io"
@@ -17,6 +18,8 @@ import (
 	GOSSERACT "github.com/otiai10/gosseract/v2"
 
 	TB "github.com/sour-dough/telebot/v2"
+
+	PDF "github.com/ledongthuc/pdf"
 )
 
 // ALIAS STUPID LOWERCASE TYPES AND CONSTANTS
@@ -187,7 +190,26 @@ func FILTERDOCUMENT(MSG *TB.Message) BOOL {
 
 		} else {
 			// FUTURE CONDITIONAL CODE GOES HERE
+
 			if MTYPE.Is("application/pdf") {
+				PDF.DebugOn = TRUE
+
+				FILE, READ, ERR := PDF.Open(STRINGS.ToUpper(J.RESULT.FILE_PATH))
+
+				defer FILE.Close()
+
+				if ERR != nil {
+					LOG.Println(ERR)
+				}
+				var BUFF BYTES.Buffer
+
+				B, ERR := READ.GetPlainText()
+				if ERR != nil {
+					LOG.Println(ERR)
+				}
+				BUFF.ReadFrom(B)
+
+				return !ISUPPERCASE(BUFF.String())
 
 			}
 		}
