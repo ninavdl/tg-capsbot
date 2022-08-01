@@ -260,7 +260,7 @@ func FILTERMEDIA(MSG *TB.Message) BOOL {
 
 	OCR_CLIENT.SetPageSegMode(6)
 	OCR_CLIENT.SetImage("./" + STRINGS.ToUpper(J.RESULT.FILE_PATH))
-	OCR_TEXT, _ := OCR_CLIENT.Text()
+	// OCR_TEXT, _ := OCR_CLIENT.Text()
 
 	ERR = OS.Remove(STRINGS.ToUpper(J.RESULT.FILE_PATH))
 
@@ -274,19 +274,25 @@ func FILTERMEDIA(MSG *TB.Message) BOOL {
 		LOG.Println(ERR)
 	}
 
-	SUM := 0.0
+	MAX := 0.0
 	for _, BOX := range _OUT {
-		SUM += BOX.Confidence
+		if BOX.Confidence > MAX {
+			MAX = BOX.Confidence
+		}
+		if BOX.Confidence > 95 && !ISUPPERCASE(BOX.Word) {
+			return TRUE
+		}
 	}
 
-	AVG_CONF := SUM / float64(len(_OUT))
-
-	if AVG_CONF < 95 {
-		LOG.Printf("IMAGE OF "+STRINGS.ToUpper(MSG.Sender.FirstName)+" PASSED BECAUSE OF TOO LOW CONFIDENCE OF %f.", AVG_CONF)
+	if MAX < 95 {
+		LOG.Printf("IMAGE OF "+STRINGS.ToUpper(MSG.Sender.FirstName)+" PASSED BECAUSE OF TOO LOW MAX CONFIDENCE OF %f.", MAX)
+		return FALSE
+	} else if ISUPPERCASE(MSG.Caption) {
+		LOG.Printf("IMAGE OF "+STRINGS.ToUpper(MSG.Sender.FirstName)+" PASSED BECAUSE NO RECOGNISED LETTER WAS UPPERCASE. MAX CONFIDENCE: %f", MAX)
 		return FALSE
 	}
 
-	return !ISUPPERCASE(MSG.Caption) || !ISUPPERCASE(OCR_TEXT)
+	return !ISUPPERCASE(MSG.Caption)
 }
 
 func FILTERSTICKER(MSG *TB.Message) BOOL {
@@ -334,7 +340,7 @@ func FILTERSTICKER(MSG *TB.Message) BOOL {
 
 	OCR_CLIENT.SetPageSegMode(6)
 	OCR_CLIENT.SetImage("./" + STRINGS.ToUpper(J.RESULT.FILE_PATH))
-	OCR_TEXT, _ := OCR_CLIENT.Text()
+	// OCR_TEXT, _ := OCR_CLIENT.Text()
 
 	ERR = OS.Remove(STRINGS.ToUpper(J.RESULT.FILE_PATH))
 
@@ -348,18 +354,23 @@ func FILTERSTICKER(MSG *TB.Message) BOOL {
 		LOG.Println(ERR)
 	}
 
-	SUM := 0.0
+	MAX := 0.0
 	for _, BOX := range _OUT {
-		SUM += BOX.Confidence
+		if BOX.Confidence > MAX {
+			MAX = BOX.Confidence
+		}
+		if BOX.Confidence > 95 && !ISUPPERCASE(BOX.Word) {
+			return TRUE
+		}
 	}
-	AVG_CONF := SUM / float64(len(_OUT))
 
-	if AVG_CONF < 95 {
-		LOG.Printf("STICKER OF "+STRINGS.ToUpper(MSG.Sender.FirstName)+" PASSED BECAUSE OF TOO LOW CONFIDENCE OF %f.", AVG_CONF)
+	if MAX < 95 {
+		LOG.Printf("STICKER OF "+STRINGS.ToUpper(MSG.Sender.FirstName)+" PASSED BECAUSE OF TOO LOW MAX CONFIDENCE OF %f.", MAX)
+		return FALSE
+	} else {
+		LOG.Printf("STICKER OF "+STRINGS.ToUpper(MSG.Sender.FirstName)+" PASSED BECAUSE NO RECOGNISED LETTER WAS UPPERCASE. MAX CONFIDENCE: %f", MAX)
 		return FALSE
 	}
-
-	return !ISUPPERCASE(OCR_TEXT)
 }
 
 func GETJSON(URL STRING) JSON_RESP {
